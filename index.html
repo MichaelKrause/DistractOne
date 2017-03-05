@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <title>D(istract.)one</title>
+  <meta charset="utf-8"/>
+  <link rel="apple-touch-startup-image" href="img/startup.png">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+  
+ 	<!--
+
+	MIT licence
+	
+	Copyright (c) 2016 Michael Krause
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+	
+	The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+	
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+	//-->  
+ 
+  <script src="js/jquery-1.11.3.min.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/math.min.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/helper.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/drt.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/occ.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/glance.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/eor.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/driving.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/table.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/Chart.js" type="text/javascript" charset="utf-8"></script>   
+  <script src="js/jquery.sparkline.js" type="text/javascript" charset="utf-8"></script>   
+  <script src="js/tinycolor.js" type="text/javascript" charset="utf-8"></script>   
+  <script src="js/seedrandom.min.js" type="text/javascript" charset="utf-8"></script> 
+  <script src="js/jBox.js" type="text/javascript" charset="utf-8"></script>   
+  <link rel="stylesheet" type="text/css" href="css/mstyle.css" media="all"/>
+  <link rel="stylesheet" type="text/css" href="css/needpopup.css" media="all"/>  
+  <link rel="stylesheet" type="text/css" href="css/jBox.css" media="all"/>  
+  <link rel="stylesheet" type="text/css" href="css/hover.css" media="all"/>  
+	 
+  
+   
+<script type="text/javascript" charset="utf-8">
+
+  //global parameter
+  const DIGITS = 2;//displayed numbers are formated
+
+
+  //global vars
+    //composed task:
+	var gSubtaskArray = [];
+	
+	//jBoxes:
+	var gConfigMenu, gTaskMenu, gAboutMenu, gTooltip, gMtooltip;
+	
+	//charts:
+	var gResultTttDrvChart, gResultTttChart, gResultRChart, gResultTsotChart, gResultTgtChart, gResultNogChart, gResultSgdChart, gResultTeortChart, gResultNogOrChart, gResultSgdOrChart, gResultDrtChart, gResultDrvLatChart,  gResultDrvLngChart;
+
+	//add or edit mode
+	var gHighlightSubTask = null; //if null=> add mode => else edit Mode 
+
+	//last yellow highlighted legend is stored so it can be set back when mouse exits
+	var gLastLegend = null;	
+
+    
+	function checkboxHandler(checkbox){//checkbox is handed over
+		
+		refresh();
+		
+	}	
+	
+	
+	function about(anchorId){//helper; open about windows and scroll to id
+		gAboutMenu.open();
+		var elem = document.getElementById(anchorId);
+		elem.scrollIntoView(true);
+			
+	}
+	
+	function closeAll(){
+		gConfigMenu.close();
+		gTaskMenu.close();
+		gAboutMenu.close();
+		needPopup.hide();
+	}
+	
+	function attachGeneralTooltips(){
+
+		if(gMtooltip) {gMtooltip.destroy();}
+		if(gTooltip) {gTooltip.destroy();}
+		
+		gMtooltip = new jBox('Mouse', {//general purpose
+		//$('.mtooltip').jBox('Mouse', {//general purpose
+			    attach: $('.mtooltip'),
+				getContent: 'tooltip-content',
+				closeOnClick : true,
+				maxWidth: '320px',
+				zIndex: 20000
+			});
+	    			
+		gTooltip = new jBox('Tooltip', {//general purpose
+		//$('.tooltip').jBox('Tooltip', {//general purpose
+			    attach: $('.tooltip'),
+				getContent: 'tooltip-content',
+				position: {x: 'center', y: 'top'},
+			    fixed: false,
+				closeOnClick : true,
+				maxWidth: '450px',
+				zIndex: 20000
+			});
+	}
+	
+	
+	$(document).ready(function() {	
+		 		
+		//---------
+		var subtask = checkIfUserOnlyRequestedGlanceVisualization();
+		if (subtask != null){
+			document.title += ' | ' +getLongLabel(subtask);
+			document.body.innerHTML = eor.generateVisualization(subtask);
+			attachGeneralTooltips();
+			return;
+		}		
+		//---------
+		
+		
+		generateSubTaskTable();
+
+						
+	    gConfigMenu = new jBox('Modal', {
+	        attach: $('#configMenu'),
+	        maxWidth: 250,
+	        maxHeight: 120,
+		    fixed: true,	        
+	        position: {x: 'left', y: 'top'},
+	        offset: {x: 35, y: 35},
+	        title: '<span class="mtooltip" tooltip-content="Total Task Time (TTT) while standing is always calculated. In which other topics are you interested?"><img src="img/002_01.png" class="iconGray"/> Configure</span>',
+	        overlay: false,
+	        createOnInit: true,
+	    	repositionOnOpen: false,
+	        content: '<form>'+
+ 			'<label for="enableMetricDrt" class="mtooltip"tooltip-content="Enable/disable metric:<ul><li>deterioration of reaction time [%]</li></ul>"> <input type="checkbox" name="enabledMetrics" value="drt" id="enableMetricDrt" class="myCheckbox" checked="checked"> Detection Response Task</label><br/>'+
+ 			'<label for="enableMetricGlanceTr" class="mtooltip" tooltip-content="Enable/disable metrics:<ul><li>Total Glance Time, task related (TGT)</li><li>Number of Glances (NoG), task related </li><li>Single Glance Duration (SGD), task related </li></ul>"> <input type="checkbox" name="enabledMetrics" value="glancetr" id="enableMetricGlanceTr" class="myCheckbox" checked="checked"> Glance, task related</label><br/>'+
+ 			'<label for="enableMetricGlanceOr" class="mtooltip" tooltip-content="Enable/disable metrics:<ul><li>Total Eyes off Road Time (TEORT)</li><li>Number of Glances (NoG), off Road </li><li>Single Glance Duration (SGD), off Road</li></ul>"> <input type="checkbox" name="enabledMetrics" value="glanceor" id="enableMetricGlanceOr" class="myCheckbox" checked="checked"> Glance, off Road </label><br/>'+
+ 			'<label for="enableMetricDriving"  class="mtooltip"tooltip-content="Enable/disable metrics:<ul><li>Total Task Time while driving</li><li>Deterioration of lateral drift [%]</li><li>Deterioration of longitudinal (time headway) drift [%]</li></ul>"> <input type="checkbox" name="enabledMetrics" value="driving" id="enableMetricDriving" class="myCheckbox" checked="checked"> Driving </label><br/>'+
+ 			'<label for="enableMetricOcc" class="mtooltip" tooltip-content="Enable/disable metrics:<ul><li>Total Shuter Open Time (TSOT)</li><li>R-ratio</li></ul>"> <input type="checkbox" name="enabledMetrics" value="occ" id="enableMetricOcc" class="myCheckbox" checked="checked"> Occlusion </label><br/>'+
+ 			'<label for="ignoreDelay" class="mtooltip" tooltip-content="When calculating Total Shutter Open Time (TSOT) and R-ratio, delay subtasks are ignored/removed ">&nbsp; &nbsp; <input type="checkbox" name="ignoreDelay" value="ignore" id="ignoreDelay" class="myCheckbox" checked="checked"> Ignore delays (recommended)</label><br/>'+	
+	 		'</form>',
+	 		blockScroll: false,
+	        draggable: 'title'
+	    });
+	    gTaskMenu = new jBox('Modal', {
+	        attach: $('#taskMenu'),
+	        maxWidth: 300,
+	        maxHeight: 300,
+		    fixed: true,	        
+	        position: {x: 'left', y: 'top'},
+	        offset: {x: 85, y: 85},
+	        title: '<img src="img/002_46b.png" class="iconGray"/> Your Composed Task',
+	        overlay: false,
+	        createOnInit: true,
+	    	repositionOnOpen: false,
+	        content: '<div id="selectedSubTasksDiv"></div><hr/><div id="addSubTaskDiv"><img src="img/001_01b.png" class="valign-img hand hvr-pulse" data-needpopup-show="#subtask_select_dialog" alt="add a subtask"  onclick="gHighlightSubTask=null;"/> click to add a subtask</div>',
+	 		blockScroll: false,
+	        draggable: 'title'
+	    });
+
+	    
+	    var aboutContent = $('#aboutMenuContent').html();
+	    $('#aboutMenuContent').detach();//detach from DOM (important, else the content exists two times)
+	    
+	    
+	    
+	    gAboutMenu = new jBox('Modal', {
+	        attach: $('#aboutMenu'),
+	        maxWidth: 700,
+	        maxHeight: 500,
+		    fixed: true,	        
+	        position: {x: 'left', y: 'top'},
+	        offset: {x: 145, y: 145},
+	        title: '<img src="img/001_54b.png" class="iconGray"/> Imprint/Datenschutz, About, Credits',
+	        overlay: false,
+	        createOnInit: true,
+	    	repositionOnOpen: false,
+	        content: aboutContent,
+	 		blockScroll: false,
+	        draggable: 'title'
+	    });
+	    
+	    	    
+	    gConfigMenu.open();
+	    gTaskMenu.open();
+	    	    
+		$('.myCheckbox').change(function() { checkboxHandler($(this));    });//attach handler
+		    
+	    handleUrl();//read in URL parameters
+
+		attachGeneralTooltips();
+		
+		$('.tooltipMenu').jBox('Tooltip', {//tooltip over side/top menu
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {
+					x: 'right',
+					y: 'center'
+				},
+				outside: 'x',
+				maxWidth: '250px',
+				zIndex: 30000
+			});
+
+		$('.tooltipImg').jBox('Tooltip', {//tool tip sub task table; images
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '300px',
+				closeOnMouseleave: true,
+				onOpen: function() {
+					var img = this.container[0].textContent;
+					this.setContent("<div><img src=\"img/"+img+"\" width=\"300\"></div>");
+				}
+			});		
+		
+							
+		$('.tooltipAddOrEdit').jBox('Tooltip', {//tool tip add/change subtask; sub task table
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				onOpen: function() {
+					var subtask =  this.container[0].textContent;//tricky, subtask number is transfered via original content in the text field of this tooltip
+					
+					if(gHighlightSubTask != null){//edit mode
+						this.setContent("Subtask "+(gHighlightSubTask+1)+" in composed task is changed to this one");
+					}else{
+						this.setContent("Add this subtask to composed task");
+					}
+					
+					
+					},
+				offset: {x: -10, y: -10}
+			});					
+			
+				
+			
+			
+		//special tooltips sub task table; metrics
+			
+		$('.tooltip10').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() {
+					var subtask = this.container[0].textContent;
+					var result = glance.getSubtaskMean("duration", [subtask]);
+					subTaskToolTipBoxPlotHelper("TttDrv", this, result, "s", 0, 41);
+				}
+			});					
+		$('.tooltip11').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = math.divide(occ.getSubtaskMean("tttbase",[subtask]),1000);//ms=>s
+					subTaskToolTipBoxPlotHelper("TttBase", this, result, "s", 0, 24);
+				}
+			});					
+		$('.tooltip12').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = math.divide(occ.getSubtaskMean("tsot",[subtask]),1000);//ms=>s
+					subTaskToolTipBoxPlotHelper("Tsot", this, result, "s", 0, 24);
+				}
+			});					
+		$('.tooltip13').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = occ.calculateR([subtask]);
+					subTaskToolTipBoxPlotHelper("R", this, result, "", 0, 4.1);
+				}
+			});					
+		$('.tooltip14').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = glance.getSubtaskMean("tgt", [subtask]);
+					subTaskToolTipBoxPlotHelper("Tgt", this, result, "s", 0, 41);
+				}
+			});					
+		$('.tooltip15').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = glance.getSubtaskMean("nog", [subtask]);
+					subTaskToolTipBoxPlotHelper("NogTr", this, result, "", 0, 14);
+				}
+			});					
+		$('.tooltip16').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					//var result = glance.calculateSgd([subtask]);
+					var result = omitZero(glance.calculateSgd([subtask]));
+					subTaskToolTipBoxPlotHelper("SgdTr", this, result, "", 0, 4);
+				}
+			});	
+			
+		$('.tooltip17').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = eor.getSubtask("teort", [subtask]);
+					subTaskToolTipBoxPlotHelper("Teort", this, result, "s", 0, 41);
+				}
+			});					
+		$('.tooltip18').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = eor.getSubtask("ornog", [subtask]);
+					subTaskToolTipBoxPlotHelper("NogOr", this, result, "", 0, 14);
+				}
+			});					
+		$('.tooltip19').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = eor.getSubtask("sgd", [subtask]);
+					subTaskToolTipBoxPlotHelper("SgdOr", this, result, "", 0, 4);
+				}
+			});	
+			
+							
+		$('.tooltip20').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = driving.calculateDetRel('sumAbsDiffLanePosition',[subtask]);
+					subTaskToolTipBoxPlotHelper("Dlp", this, result, "%", 0, 640);
+				}
+			});					
+		$('.tooltip21').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = driving.calculateDetRel('sumAbsDiffTimeHeadway',[subtask]);
+					subTaskToolTipBoxPlotHelper("Dhw", this, result, "%", -40, 480);
+				}
+			});					
+		$('.tooltip22').jBox('Tooltip', {//tool tip sub task table; metric
+				getContent: 'tooltip-content',
+		    	fixed: true,	        
+				position: {x: 'center', y: 'top'},
+				maxWidth: '230px',
+				closeOnMouseleave: true,
+				onOpen: function() { 
+					var subtask = this.container[0].textContent;
+					var result = drt.calculateDetRel([subtask]);
+					subTaskToolTipBoxPlotHelper("Drt", this, result, "\%", -40, 480);
+					var availableN = drt.getAvailability([subtask]);
+					document.getElementById("subTaskSelectBoxPlotLegendDrt").innerHTML += "<small>N=" + availableN.toString()+"</small>";
+				}
+			});					
+
+			
+			
+		refresh();					
+				
+	});//end document ready
+	
+
+	function subTaskToolTipBoxPlotHelper(id, tooltip, result, unit, min, max){
+		tooltip.setContent("<div><span class=\"subTaskSelectBoxPlot"+id+"\"></span></div><div id=\"subTaskSelectBoxPlotLegend"+id+"\"></div>");
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	    var p85 = math.quantileSeq(result, 0.85);
+        $(".subTaskSelectBoxPlot"+id).sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:min, chartRangeMax:max, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5});
+        var legend = generateBoxPlotLegend(result, unit);
+        document.getElementById("subTaskSelectBoxPlotLegend"+id).innerHTML = legend;
+	
+	}	
+			
+
+  
+
+    function refresh(){
+	    
+	    $('#wait').show();
+	    
+	    //intentionally show all so refreshResults() will work  
+		$('.drt').show();
+		$('.drv').show();
+		$('.occ').show();
+		$('.glancetr').show();
+		$('.glanceor').show();
+					
+	    
+   		refreshResults();	
+		refreshSelectedSubtaskDiv();	
+
+   			    
+		if (!isChecked(DRT_CB)){ $('.drt').hide(); }	    
+		if (!isChecked(DRV_CB)){ $('.drv').hide(); }	    
+		if (!isChecked(OCC_CB)){ $('.occ').hide(); }	    
+		if (!isChecked(GLANCE_TR_CB)){ $('.glancetr').hide(); }
+		if (!isChecked(GLANCE_OR_CB)){ $('.glanceor').hide(); }
+		
+		$('#wait').hide();
+		
+		$('.saveUrl').attr("href", constructUrl());
+		
+		
+		var dCount = 0;
+		var count = 0;
+		
+	  	for(var i = 0; i < gSubtaskArray.length; i++){
+		  	if (!gSubtaskArray[i]['enabled']){dCount++;}
+		  	count++;
+		}		
+				
+		$('#countStats').html("You have added "+count+" subtasks to your task. Of these you disabled: "+dCount+" subtasks (you can disable subtasks to see their influence on the task).");
+		
+	}
+  
+  	function refreshResults(){
+	  	var filteredSubtaskColection = [];
+	  	
+	  	//remove temporary disabled subtasks
+	  	for(var i = 0; i < gSubtaskArray.length; i++){
+		  	if (gSubtaskArray[i]['enabled']){
+			  	filteredSubtaskColection.push(gSubtaskArray[i]['subtask']);
+			}
+		}
+		generateResultPieCharts(filteredSubtaskColection);
+		generateResultBoxPlots(filteredSubtaskColection);
+	  	
+	}
+  
+  
+	
+	function ignoreDelay(subtaskArray){//remove delays from array if IGNORE_CB is checked
+		var retArray = [];
+		
+		if (isChecked(IGNORE_CB)){
+			for(var i = 0; i < subtaskArray.length; i++){
+				if (SUBTASKS[subtaskArray[i]]["Type"] != "Delay"){retArray.push(subtaskArray[i]);}//not a delay => push to retArray
+			}
+		}else{//do nothing simply return original
+			retArray = subtaskArray;
+		}
+		return retArray;		
+	}
+	
+	
+	function ignoreCount(subtaskArray){//count how many delays are ignored
+		var count = 0;
+		
+		if (isChecked(IGNORE_CB)){
+			for(var i = 0; i < subtaskArray.length; i++){
+				if (SUBTASKS[subtaskArray[i]]["Type"] == "Delay"){count++}
+			}
+		}
+		
+		return count;		
+	}
+	
+  
+  	function generateResultPieCharts(subtaskCollection){
+	  	
+	  	subtaskCollectionOpDy = ignoreDelay(subtaskCollection);//if ignore checkbox is checked for TSOT and R delays are removed 
+	  	
+	  	//TTT_DRV chart
+		var resultTttDrvCanvas = document.getElementById("resultTttDrvCanvas").getContext("2d");
+		pieChartOptions.legend = document.getElementById("resultTttDrvCanvasLegend");
+		if(gResultTttDrvChart != null){
+			gResultTttDrvChart.clear();
+			gResultTttDrvChart.destroy();
+		}
+		gResultTttDrvChart = new Chart(resultTttDrvCanvas).Doughnut(null,pieChartOptions);
+		var percentages = glance.percentages('duration',subtaskCollection);
+		var subMeans = glance.means('duration',subtaskCollection);
+		
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(percentages[i],DIGITS),
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, subMeans, subtaskCollection, "s"),
+			        label: math.format(subMeans[i],DIGITS)+ "s "  
+    		};
+			gResultTttDrvChart.addData(tempData);
+		}
+		//fill legend
+		pieChartOptions.legend.innerHTML = gResultTttDrvChart.generateLegend();
+
+
+	  	//TTT_baseline chart
+		var resultTttCanvas = document.getElementById("resultTttCanvas").getContext("2d");
+		pieChartOptions.legend = document.getElementById("resultTttCanvasLegend");
+		if(gResultTttChart != null){
+			gResultTttChart.clear();
+			gResultTttChart.destroy();
+		}		
+		gResultTttChart = new Chart(resultTttCanvas).Doughnut(null,pieChartOptions);
+		var percentages = occ.percentages('tttbase',subtaskCollection);
+		var subMeans = math.divide(occ.means('tttbase',subtaskCollection),1000.0);// divide by 1000 ms => s
+		
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(percentages[i],DIGITS),
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, subMeans, subtaskCollection, "s"),
+			        label: math.format(subMeans[i],DIGITS)+ "s "  
+    		};
+			gResultTttChart.addData(tempData);
+		}
+		//fill legend
+		pieChartOptions.legend.innerHTML = gResultTttChart.generateLegend();
+		
+		
+		//R
+	  	var meanScaleLine = math.format(math.mean(occ.calculateR(subtaskCollectionOpDy)),DIGITS);
+		var resultRCanvas = document.getElementById("resultRCanvas").getContext("2d");
+		polarChartOptions.legend = document.getElementById("resultRCanvasLegend");
+		polarChartOptions.scaleStepWidth  = meanScaleLine;
+		if(gResultRChart != null){
+			gResultRChart.clear();
+			gResultRChart.destroy();
+		}		
+		gResultRChart = new Chart(resultRCanvas).PolarArea([],polarChartOptions);
+		var subMeans = occ.means('R',subtaskCollectionOpDy);
+		var percentages = occ.percentages('tsot',subtaskCollectionOpDy);
+		var tempColor = [];
+		var tempColorHi = [];
+		//ATTENTION intentionaly sometimes subtaskCollection AND NOT subtaskCollectionOpDy !!!!
+		for(var i = 0; i < subtaskCollection.length; i++){//first get colors
+			if((SUBTASKS[subtaskCollection[i]]["Type"] != "Delay") || (!isChecked(IGNORE_CB))){
+				tempColor.push(getColor(i, subtaskCollection.length, false));
+				tempColorHi.push(getColor(i, subtaskCollection.length, true));
+			}
+		}
+		
+		
+		for(var i = 0; i < subtaskCollectionOpDy.length; i++){
+			var tempData = {
+			        value: math.format(subMeans[i],DIGITS),//radial
+			        amount: math.format(percentages[i],DIGITS),//circular
+			        color: tempColor[i],
+			        highlight: tempColorHi[i],
+			        labelLong: getLegendLongLabel(i, null, subtaskCollectionOpDy, ""),
+			        label: "", 
+			        unit: ""
+    		};
+			gResultRChart.addData(tempData);
+		}
+		//fill legend
+		polarChartOptions.legend.innerHTML = gResultRChart.generateLegend();
+		var count = ignoreCount(subtaskCollection);
+		if(count > 0){polarChartOptions.legend.innerHTML += "<div class=\"ignoreNotice\">Ignored "+count+" delay subtask (due to ignore checkbox).</div>";}		
+		//if(subtaskCollectionOpDy.length >0){ polarChartOptions.legend.innerHTML += "<div>Mean R: "+meanScaleLine+"</div>"; }
+	
+		
+		
+	  	//TSOT
+		var resultTsotCanvas = document.getElementById("resultTsotCanvas").getContext("2d");
+		pieChartOptions.legend = document.getElementById("resultTsotCanvasLegend");
+		if(gResultTsotChart != null){
+			gResultTsotChart.clear();
+			gResultTsotChart.destroy();
+		}		
+		gResultTsotChart = new Chart(resultTsotCanvas).Doughnut(null,pieChartOptions);
+		var percentages = occ.percentages('tsot',subtaskCollectionOpDy);
+		var subMeans = math.divide(occ.means('tsot',subtaskCollectionOpDy),1000.0);// divide by 1000 ms => s
+		var tempColor = [];
+		var tempColorHi = [];
+		//ATTENTION intentionaly sometimes subtaskCollection AND NOT subtaskCollectionOpDy !!!!
+		for(var i = 0; i < subtaskCollection.length; i++){//first get colors
+			if((SUBTASKS[subtaskCollection[i]]["Type"] != "Delay") || (!isChecked(IGNORE_CB))){
+				tempColor.push(getColor(i, subtaskCollection.length, false));
+				tempColorHi.push(getColor(i, subtaskCollection.length, true));
+			}
+		}
+		for(var i = 0; i < subtaskCollectionOpDy.length; i++){
+			var tempData = {
+			        value: math.format(percentages[i],DIGITS),
+			        color: tempColor[i],
+			        highlight: tempColorHi[i],
+			        labelLong: getLegendLongLabel(i, subMeans, subtaskCollectionOpDy, "s"),
+			        label: math.format(subMeans[i],DIGITS)+ "s "  
+    		};
+			gResultTsotChart.addData(tempData);
+		}
+		//fill legend
+		pieChartOptions.legend.innerHTML = gResultTsotChart.generateLegend();
+		var count = ignoreCount(subtaskCollection);
+		if(count > 0){pieChartOptions.legend.innerHTML += "<div class=\"ignoreNotice\">Ignored "+count+" delay subtask (due to ignore checkbox).</div>";}
+		
+			
+		
+	  	//TGT
+		var resultTgtCanvas = document.getElementById("resultTgtCanvas").getContext("2d");
+		pieChartOptions.legend = document.getElementById("resultTgtCanvasLegend");
+		if(gResultTgtChart != null){
+			gResultTgtChart.clear();
+			gResultTgtChart.destroy();
+		}		
+		gResultTgtChart = new Chart(resultTgtCanvas).Doughnut(null,pieChartOptions);
+		var percentages = glance.percentages('tgt',subtaskCollection);
+		var subMeans = glance.means('tgt',subtaskCollection);
+		
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(percentages[i],DIGITS),
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, subMeans, subtaskCollection, "s"),			        
+			        label: math.format(subMeans[i],DIGITS)+ "s "  
+    		};
+			gResultTgtChart.addData(tempData);
+		}
+		//fill legend
+		pieChartOptions.legend.innerHTML = gResultTgtChart.generateLegend();
+		
+		
+		
+	  	//NOG task related
+		var resultNogCanvas = document.getElementById("resultNogCanvas").getContext("2d");
+		pieChartOptions.legend = document.getElementById("resultNogCanvasLegend");
+		if(gResultNogChart != null){
+			gResultNogChart.clear();
+			gResultNogChart.destroy();
+		}		
+		gResultNogChart = new Chart(resultNogCanvas).Doughnut(null,pieChartOptions);
+		var percentages = glance.percentages('nog',subtaskCollection);
+		var subMeans = glance.means('nog',subtaskCollection);
+		
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(percentages[i],DIGITS),
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, subMeans, subtaskCollection, ""),			        
+			        label: math.format(subMeans[i],DIGITS)  
+    		};
+			gResultNogChart.addData(tempData);
+		}
+		//fill legend
+		pieChartOptions.legend.innerHTML = gResultNogChart.generateLegend();
+		
+		
+	  	//SGD task related
+	  	var meanScaleLine = math.format(math.mean(glance.calculateSgd(subtaskCollection)),DIGITS);
+		var resultSgdCanvas = document.getElementById("resultSgdCanvas").getContext("2d");
+		polarChartOptions.legend = document.getElementById("resultSgdCanvasLegend");
+		polarChartOptions.scaleStepWidth  = meanScaleLine;
+		if(gResultSgdChart != null){
+			gResultSgdChart.clear();
+			gResultSgdChart.destroy();
+		}		
+		gResultSgdChart = new Chart(resultSgdCanvas).PolarArea([],polarChartOptions);
+		var subMeans = glance.means('sgd',subtaskCollection);
+		var percentages = glance.percentageSgd(subtaskCollection);
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(subMeans[i],DIGITS),//radial
+			        amount: math.format(percentages[i],DIGITS),//circular
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, null, subtaskCollection, ""),	
+			        label: "", 
+			        unit: "s"
+    		};
+			gResultSgdChart.addData(tempData);
+		}
+		//fill legend
+		polarChartOptions.legend.innerHTML = gResultSgdChart.generateLegend();
+		if(subtaskCollection.length >0){
+			
+		//polarChartOptions.legend.innerHTML += "<div>Mean SGD "+meanScaleLine+"s</div>";
+		}else{
+		}		
+			
+
+	  	//TEORT
+		var resultTeortCanvas = document.getElementById("resultTeortCanvas").getContext("2d");
+		pieChartOptions.legend = document.getElementById("resultTeortCanvasLegend");
+		if(gResultTeortChart != null){
+			gResultTeortChart.clear();
+			gResultTeortChart.destroy();
+		}		
+		gResultTeortChart = new Chart(resultTeortCanvas).Doughnut(null,pieChartOptions);
+		var percentages = eor.percentages('teort',subtaskCollection);
+		var subMeans = eor.means('teort',subtaskCollection);
+		
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(percentages[i],DIGITS),
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, subMeans, subtaskCollection, "s"),			        
+			        label: math.format(subMeans[i],DIGITS)+ "s "  
+    		};
+			gResultTeortChart.addData(tempData);
+		}
+		//fill legend
+		pieChartOptions.legend.innerHTML = gResultTeortChart.generateLegend();
+		
+		
+		
+	  	//NOG off road
+		var resultNogOrCanvas = document.getElementById("resultNogOrCanvas").getContext("2d");
+		pieChartOptions.legend = document.getElementById("resultNogOrCanvasLegend");
+		if(gResultNogOrChart != null){
+			gResultNogOrChart.clear();
+			gResultNogOrChart.destroy();
+		}		
+		gResultNogOrChart = new Chart(resultNogOrCanvas).Doughnut(null,pieChartOptions);
+		var percentages = eor.percentages('ornog',subtaskCollection);
+		var subMeans = eor.means('ornog',subtaskCollection);
+		
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(percentages[i],DIGITS),
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, subMeans, subtaskCollection, ""),			        
+			        label: math.format(subMeans[i],DIGITS)  
+    		};
+			gResultNogOrChart.addData(tempData);
+		}
+		//fill legend
+		pieChartOptions.legend.innerHTML = gResultNogOrChart.generateLegend();
+		
+		
+	  	//SGD off road
+	  	var meanScaleLine = math.format(math.mean(eor.meanSgd(subtaskCollection)),DIGITS);
+		var resultSgdOrCanvas = document.getElementById("resultSgdOrCanvas").getContext("2d");
+		polarChartOptions.legend = document.getElementById("resultSgdOrCanvasLegend");
+		polarChartOptions.scaleStepWidth  = meanScaleLine;
+		if(gResultSgdOrChart != null){
+			gResultSgdOrChart.clear();
+			gResultSgdOrChart.destroy();
+		}		
+		gResultSgdOrChart = new Chart(resultSgdOrCanvas).PolarArea([],polarChartOptions);
+		var subMeans = eor.means('sgd',subtaskCollection);
+		var percentages =  eor.percentages('ornog',subtaskCollection);
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(subMeans[i],DIGITS),//radial
+			        amount: math.format(percentages[i],DIGITS),//circular
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, null, subtaskCollection, ""),	
+			        label: "", 
+			        unit: "s"
+    		};
+			gResultSgdOrChart.addData(tempData);
+		}
+		//fill legend
+		polarChartOptions.legend.innerHTML = gResultSgdOrChart.generateLegend();
+		if(subtaskCollection.length >0){
+			
+		//polarChartOptions.legend.innerHTML += "<div>Mean SGD "+meanScaleLine+"s</div>";
+		}else{
+		}		
+			
+		
+		
+				
+		
+	  	//DRT
+	  	var meanScaleLine = math.format(math.mean(omitNaN(drt.calculateDetRel(subtaskCollection))),DIGITS);
+		var resultDrtCanvas = document.getElementById("resultDrtCanvas").getContext("2d");
+		polarChartOptions.legend = document.getElementById("resultDrtCanvasLegend");
+		polarChartOptions.scaleStepWidth  = meanScaleLine;
+		if(gResultDrtChart != null){
+			gResultDrtChart.clear();
+			gResultDrtChart.destroy();
+		}		
+		gResultDrtChart = new Chart(resultDrtCanvas).PolarArea([],polarChartOptions);	
+
+		var subMeans = drt.means('rel',subtaskCollection);
+		
+		var percentages = drt.percentages(subtaskCollection);
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(subMeans[i],DIGITS),//radial
+			        amount: math.format(percentages[i],DIGITS),//circular
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, null, subtaskCollection, ""),	
+			        label: "", 
+			        unit: "%"
+    		};
+			gResultDrtChart.addData(tempData);
+		}
+		//fill legend
+		polarChartOptions.legend.innerHTML = gResultDrtChart.generateLegend();
+		if(subtaskCollection.length >0){
+		//polarChartOptions.legend.innerHTML += "<div>Mean DRT deterioration to baseline "+meanScaleLine+"%</div>";
+		}else{
+		}		
+	 			
+
+
+	  	//DRV_LAT
+	  	var meanScaleLine = math.format(math.mean(driving.calculateDetRel('sumAbsDiffLanePosition', subtaskCollection)),DIGITS);
+		var resultDrvLatCanvas = document.getElementById("resultDrvLatCanvas").getContext("2d");
+		polarChartOptions.legend = document.getElementById("resultDrvLatCanvasLegend");
+		polarChartOptions.scaleStepWidth  = meanScaleLine;
+		if(gResultDrvLatChart != null){
+			gResultDrvLatChart.clear();
+			gResultDrvLatChart.destroy();
+		}		
+		gResultDrvLatChart = new Chart(resultDrvLatCanvas).PolarArea([],polarChartOptions);	
+
+		var subMeans = driving.meansNorm('sumAbsDiffLanePosition',subtaskCollection);
+		
+		var percentages = driving.percentages('duration', subtaskCollection);
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(subMeans[i],DIGITS),//radial
+			        amount: math.format(percentages[i],DIGITS),//circular
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, null, subtaskCollection, ""),	
+			        label: "", 
+			        unit: "%"
+    		};
+			gResultDrvLatChart.addData(tempData);
+		}
+		//fill legend
+		polarChartOptions.legend.innerHTML = gResultDrvLatChart.generateLegend();
+		if(subtaskCollection.length >0){
+		//polarChartOptions.legend.innerHTML += "<div>DRV lat: "+meanScaleLine+"mm/s</div>";
+		}else{
+		}		
+		
+	  	//DRV_LNG
+	  	var meanScaleLine = math.format(math.mean(driving.calculateDetRel('sumAbsDiffTimeHeadway', subtaskCollection)),DIGITS);
+		var resultDrvLngCanvas = document.getElementById("resultDrvLngCanvas").getContext("2d");
+		polarChartOptions.legend = document.getElementById("resultDrvLngCanvasLegend");
+		polarChartOptions.scaleStepWidth  = meanScaleLine;
+		if(gResultDrvLngChart != null){
+			gResultDrvLngChart.clear();
+			gResultDrvLngChart.destroy();
+		}		
+		gResultDrvLngChart = new Chart(resultDrvLngCanvas).PolarArea([],polarChartOptions);		
+
+		var subMeans = driving.meansNorm('sumAbsDiffTimeHeadway',subtaskCollection);
+		
+		var percentages = driving.percentages('duration', subtaskCollection);
+		for(var i = 0; i < subtaskCollection.length; i++){
+			var tempData = {
+			        value: math.format(subMeans[i],DIGITS),//radial
+			        amount: math.format(percentages[i],DIGITS),//circular
+			        color: getColor(i, subtaskCollection.length, false),
+			        highlight: getColor(i, subtaskCollection.length, true),
+			        labelLong: getLegendLongLabel(i, null, subtaskCollection, ""),	
+			        label: "", 
+			        unit: "%"
+    		};
+			gResultDrvLngChart.addData(tempData);
+		}
+		//fill legend
+		polarChartOptions.legend.innerHTML = gResultDrvLngChart.generateLegend();
+		if(subtaskCollection.length >0){
+		//polarChartOptions.legend.innerHTML += "<div>DRV lng: "+meanScaleLine+"ms/s</div>";
+		}else{
+		}		
+				
+						 	
+	}
+	
+  	function generateResultBoxPlots(subtaskCollection){
+	  	
+	    subtaskCollectionOpDy = ignoreDelay(subtaskCollection);//if ignore checkbox is checked for TSOT and R delays are removed 
+
+	    
+	  	//empty handling
+	  	if ((!subtaskCollection)||(subtaskCollection.length<1)){
+		  $('.resultSparkline').sparkline(quartiles, {type: 'box', disableTooltips: true, raw: true});
+          $('.resultSparklineLegend').html("");
+                                        
+		 return;
+		}
+	  	
+	  	//TTT_DRV
+	  	var result = glance.calculateSum('duration',subtaskCollection);
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultTttDrvSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:0, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5});
+        document.getElementById("resultTttDrvSparklineLegend").innerHTML = generateBoxPlotLegend(result, 's');
+
+	  	//TTT_baseline
+	  	var result = math.divide(occ.calculateSum('tttbase',subtaskCollection),1000.0);// divide by 1000 ms => s
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultTttSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:0, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5});
+        document.getElementById("resultTttSparklineLegend").innerHTML = generateBoxPlotLegend(result, 's');
+        
+	  	//TSOT
+	  	if (subtaskCollectionOpDy.length == 0){
+		  	$('.resultTsotSparkline').sparkline(quartiles, {type: 'box', disableTooltips: true, raw: true});
+	        document.getElementById("resultTsotSparklineLegend").innerHTML = "";
+		}else{
+		  	var result = math.divide(occ.calculateSum('tsot',subtaskCollectionOpDy),1000.0);// divide by 1000 ms => s
+		  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+		    var p85 = math.quantileSeq(result, 0.85);
+	        $('.resultTsotSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:0, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5, limit: 15, limitColor: '#ff0000'});
+	        document.getElementById("resultTsotSparklineLegend").innerHTML = generateBoxPlotLegend(result, 's');
+	        var aam = occ.bootstrap("tsot", subtaskCollectionOpDy, 15000, 1000);
+	        var nhtsa = occ.bootstrap("tsot", subtaskCollectionOpDy, 12000, 1000);
+	        document.getElementById("resultTsotSparklineLegend").innerHTML += ""+
+	           "<div class=\"bootstrap\">The result was 1000 times bootstrapped, the following percentages show how often the P85-limit was not exceeded:"+ 
+	          	"<div><span>AAM (15s): </span><span>"+math.format(aam,DIGITS)+"%</span></div>"+ 
+	          	"<div><span>NHTSA (12s): </span><span>"+math.format(nhtsa,DIGITS)+"%</span></div>"+ 
+	          "</div>"; 
+		}        
+ 
+	  	//R
+	  	if (subtaskCollectionOpDy.length == 0){
+		  	$('.resultRSparkline').sparkline(quartiles, {type: 'box', disableTooltips: true, raw: true});
+	        document.getElementById("resultRSparklineLegend").innerHTML = "";
+		}else{
+		  	var result = occ.calculateR(subtaskCollectionOpDy);			
+		  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+		    var p85 = math.quantileSeq(result, 0.85);
+	        $('.resultRSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:0, chartRangeMax:2, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5});
+	        document.getElementById("resultRSparklineLegend").innerHTML = generateBoxPlotLegend(result, '');
+		}
+		        
+  	  	//TGT
+	  	var result = glance.calculateSum('tgt',subtaskCollection);
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultTgtSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:0, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5, limit: 20, limitColor: '#ff0000'});
+        document.getElementById("resultTgtSparklineLegend").innerHTML = generateBoxPlotLegend(result, 's');
+        var aam = glance.bootstrap("tgt", subtaskCollection, 20, 1000);
+        document.getElementById("resultTgtSparklineLegend").innerHTML += ""+
+           "<div class=\"bootstrap\">The result was 1000 times bootstrapped, the following percentages show how often the P85-limit was not exceeded:"+ 
+          	"<div><span>AAM (20s): </span><span>"+math.format(aam,DIGITS)+"%</span></div>"+ 
+          "</div>";                      
+          
+ 	  	//NOG task related
+	  	var result = glance.calculateSum('nog',subtaskCollection);
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultNogSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:0, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5});
+        document.getElementById("resultNogSparklineLegend").innerHTML = generateBoxPlotLegend(result, '');
+ 
+	  	//SGD task related
+	  	var result = glance.calculateSgd(subtaskCollection);
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultSgdSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:0, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5, limit: 2, limitColor: '#ff0000'});
+        document.getElementById("resultSgdSparklineLegend").innerHTML = generateBoxPlotLegend(result, 's');
+        var aam = glance.bootstrap("SGD", subtaskCollection, 2, 1000);
+        document.getElementById("resultSgdSparklineLegend").innerHTML += ""+
+           "<div class=\"bootstrap\">The result was 1000 times bootstrapped, the following percentage shows how often the P85-limit was not exceeded:"+ 
+          	"<div><span>AAM (2s): </span><span>"+math.format(aam,DIGITS)+"%</span></div>"+ 
+          "</div>";                   
+
+
+          
+  	  	//TEORT
+	  	var result = omitNaN(eor.calculateSum('teort',subtaskCollection));
+	  	console.log(result);
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultTeortSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:0, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5, limit: 12, limitColor: '#ff0000'});
+        document.getElementById("resultTeortSparklineLegend").innerHTML = generateBoxPlotLegend(result, 's');
+        var nhtsa = eor.bootstrap("teort", subtaskCollection, 12, 1000);
+        document.getElementById("resultTeortSparklineLegend").innerHTML += ""+
+           "<div class=\"bootstrap\">The result was 1000 times bootstrapped, the following percentages show how often the P85-limit was not exceeded:"+ 
+          	"<div><span>NHTSA (12s): </span><span>"+math.format(nhtsa,DIGITS)+"%</span></div>"+ 
+          "</div>";                      
+
+          
+ 	  	//NOG off road
+	  	var result = omitNaN(eor.calculateSum('ornog',subtaskCollection));
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultNogOrSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:0, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5});
+        document.getElementById("resultNogOrSparklineLegend").innerHTML = generateBoxPlotLegend(result, '');
+
+ 
+	  	//SGD off road
+	  	var result = omitNaN(eor.meanSgd(subtaskCollection));
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultSgdOrSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, chartRangeMin:0, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5, limit: 2, limitColor: '#ff0000'});
+        document.getElementById("resultSgdOrSparklineLegend").innerHTML = generateBoxPlotLegend(result, 's');
+        var nhtsa = eor.bootstrapLg(subtaskCollection, 1000);
+        document.getElementById("resultSgdOrSparklineLegend").innerHTML += ""+
+           "<div class=\"bootstrap\">The result was 1000 times bootstrapped, the following percentage shows how often the P85-limit was not exceeded:"+ 
+          	"<div><span>NHTSA (2s): </span><span>"+math.format(nhtsa,DIGITS)+"%</span></div>"+ 
+          "</div>";                   
+          
+                    
+ 	  	//DRT
+	  	var result = drt.calculateDetRel(subtaskCollection);
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultDrtSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5});
+        document.getElementById("resultDrtSparklineLegend").innerHTML = generateBoxPlotLegend(result, '%');
+
+                  
+ 	  	//DRV_LAT
+	  	var result = driving.calculateDetRel('sumAbsDiffLanePosition', subtaskCollection);
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	  	var latReferenceRadio = 117.7;
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultDrvLatSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5, limit: latReferenceRadio, limitColor: '#ff0000'});
+        document.getElementById("resultDrvLatSparklineLegend").innerHTML = generateBoxPlotLegend(result, '%');
+        var bootstrap = driving.bootstrap('sumAbsDiffLanePosition', subtaskCollection, latReferenceRadio, 1000);
+        document.getElementById("resultDrvLatSparklineLegend").innerHTML += ""+
+           "<div class=\"bootstrap\">The result was 1000 times bootstrapped, the following percentage shows how often the mean deterioration was not worse than "+math.format(latReferenceRadio,DIGITS)+"% (reference from an experiment with radio tuning):"+ 
+          	"<div><span>Suitable like radio tuning reference: </span><span>"+math.format(bootstrap,DIGITS)+"%</span></div>"+ 
+          "</div>";
+          
+ 	  	//DRV_LNG
+	  	var result = driving.calculateDetRel('sumAbsDiffTimeHeadway', subtaskCollection);
+	  	var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+	  	var lngReferenceRadio = 52.2;
+	    var p85 = math.quantileSeq(result, 0.85);
+        $('.resultDrvLngSparkline').sparkline(quartiles, {width: '200', height: '50',type: 'box', disableTooltips: true, raw: true, showOutliers: false, boxFillColor: '#ffffff', medianColor: '#191919', target: p85, targetColor: '#0000ff', spotRadius: 5, limit: lngReferenceRadio, limitColor: '#ff0000'});
+        document.getElementById("resultDrvLngSparklineLegend").innerHTML = generateBoxPlotLegend(result, '%');
+        var bootstrap = driving.bootstrap('sumAbsDiffTimeHeadway', subtaskCollection, lngReferenceRadio, 1000);
+        document.getElementById("resultDrvLngSparklineLegend").innerHTML += ""+
+           "<div class=\"bootstrap\">The result was 1000 times bootstrapped, the following percentage shows how often the mean deterioration was not worse than "+math.format(lngReferenceRadio,DIGITS)+"% (reference from an experiment with radio tuning):"+ 
+          	"<div><span>Suitable like radio tuning reference: </span><span>"+math.format(bootstrap,DIGITS)+"%</span></div>"+ 
+          "</div>";          
+          
+  	}
+		
+
+	function generateBoxPlotLegend(result, unit){
+		var quartiles = math.quantileSeq(result, [0, 0.25, 0.5, 0.75, 1]);
+		var mean = math.mean(omitNaN(result));
+		var sd = math.std(omitNaN(result));
+		var p85 = math.quantileSeq(result, 0.85);
+		
+		var retValue = ""+
+          "<div class=\"boxPlotLegendWrapper\">"+ 
+          "<div class=\"boxPlotLegendCol1\">"+ 
+          	"<div class=\"cells min mtooltip\" tooltip-content=\"Minimum\">Min</div>"+ 
+          	"<div class=\"cells q1 mtooltip\" tooltip-content=\"1.Quartile\">Q1</div>"+ 
+          	"<div class=\"cells median\">Median</div>"+ 
+          	"<div class=\"cells q3 mtooltip\" tooltip-content=\"3.Quartile\">Q3</div>"+ 
+          	"<div class=\"cells max mtooltip\" tooltip-content=\"Maximum\">Max</div>"+ 
+          "</div>"+
+          "<div class=\"boxPlotLegendCol2\">"+ 
+          	"<div class=\"cells min\">"+math.format(quartiles[0],DIGITS)+unit+"</div>"+ 
+          	"<div class=\"cells q1\">"+math.format(quartiles[1],DIGITS)+unit+"</div>"+ 
+          	"<div class=\"cells median\">"+math.format(quartiles[2],DIGITS)+unit+"</div>"+ 
+          	"<div class=\"cells q3\">"+math.format(quartiles[3],DIGITS)+unit+"</div>"+ 
+          	"<div class=\"cells max\">"+math.format(quartiles[4],DIGITS)+unit+"</div>"+ 
+          "</div>"+
+          "<div class=\"boxPlotLegendColSpacer\"></div>"+ 
+          "<div class=\"boxPlotLegendCol3\">"+ 
+          	"<div>&nbsp;</div>"+ 
+          	"<div>&nbsp;</div>"+ 
+          	"<div class=\"cells mean\">Mean</div>"+ 
+          	"<div class=\"cells sd mtooltip\" tooltip-content=\"Standard Deviation\">SD</div>"+ 
+          	"<div class=\"cells p85 mtooltip\" tooltip-content=\"85.Percentile\">P85</div>"+ 
+          "</div>"+
+          "<div class=\"boxPlotLegendCol4\">"+ 
+          	"<div>&nbsp;</div>"+ 
+          	"<div>&nbsp;</div>"+ 
+          	"<div class=\"cells mean\">"+math.format(mean,DIGITS)+unit+"</div>"+ 
+          	"<div class=\"cells sd\">"+math.format(sd,DIGITS)+unit+"</div>"+ 
+          	"<div class=\"cells p85\">"+math.format(p85,DIGITS)+unit+"</div>"+ 
+          "</div>"+
+          "</div>";
+		
+		return retValue;	
+	}
+  
+	function stopBubbling(event){
+		if (!event) event = window.event;
+        if (event.stopPropagation) event.stopPropagation();
+        else event.cancelBubble = true;
+        if(event.preventDefault) event.preventDefault();
+        else event.returnValue = false;		  
+	}
+	
+	function resetSubtaskTable(){
+	    var table = document.getElementById('subTable');
+		Table.filter(table,null);//reset sorting
+		t = Table.resolve(table,null);
+		tdata = Table.tabledata[t.id];
+		tdata.col = 2; //use 'ID' col for sorting
+		tdata.lastcol = -1;//set last sort col to unreachable '-1'; so new value '1' will sort default 
+		tdata.lastdesc = false;
+		Table.sort(table,1);//use column 1 (count starts with 0)
+		  $('select.table-autofilter').each(function(){
+		    ($(this)).prop("selectedIndex",0);;//workaround reset the selectboxes manualy to first selection
+		  });
+		  
+	}
+	
+	
+	function addOrEdit(subtask) {
+		
+		if(gHighlightSubTask != null){//edit mode
+			gSubtaskArray[gHighlightSubTask]['subtask'] = subtask;
+			needPopup.hide();
+			gTaskMenu.open();		
+			refresh();
+		
+		}else{//add mode
+			gSubtaskArray.push({subtask: subtask, enabled: true});
+			refresh();
+			gTaskMenu.open();
+			var elem = document.getElementById("addSubTaskDiv");  
+			elem.scrollIntoView(true);
+			
+		
+		}
+				
+	}
+	
+	function generateSubTaskTable(){
+		var tblBody = document.getElementById('subtaskstableBody');
+		var tempHTML = "";
+		for (var subtask in SUBTASKS) {
+				
+				tempHTML += "<tr id=\"subTableRow"+SUBTASKS[subtask]["Nr"]+"\">"+
+											"<td><div class=\"col1\">"+
+											  "&nbsp;<img src=\"img/001_01b.png\"/ id=\"addImg"+subtask+"\" onclick=\"addOrEdit("+subtask+");\" class=\"tooltipAddOrEdit addImg hvr-pulse hand\" tooltip-content=\""+subtask+"\">"+
+											  "<img src=\"img/001_60.png\"/ id=\"editImg"+subtask+"\" onclick=\"addOrEdit("+subtask+");\" class=\"tooltipAddOrEdit editImg hvr-pulse hand\" tooltip-content=\""+subtask+"\">"+
+											  "&nbsp;<img src=\"img/002_26.png\"/ class=\"tooltip valign-img\"  tooltip-content=\"Description: "+SUBTASKS[subtask]["Info"]+"\">"+
+											  "&nbsp;<a href=\"?subtask="+subtask+"\" target=\"_blank\"><img src=\"img/002_11b.png\"/ class=\"tooltip valign-img hvr-pulse hand\"  tooltip-content=\"show glance visualization in a new window\"></a></div></td>"+
+											"<td><div class=\"col2\"><img src=\"img/"+SUBTASKS[subtask]["Image"]+"\" tooltip-content=\""+SUBTASKS[subtask]["Image"]+"\" class=\"tooltipImg\" width=\"70\"/></div></td>"+
+											"<td class=\"addSortablePadding\"><div class=\"col3\">"+ pad(SUBTASKS[subtask]["Nr"],2) +"</div></td>"+
+											"<td class=\"addSortablePadding\"><div class=\"col4\">"+SUBTASKS[subtask]["Mode"]+"</div></td>"+
+											"<td class=\"addSortablePadding\"><div class=\"col5\">"+SUBTASKS[subtask]["Type"]+"</div></td>"+
+											"<td class=\"addSortablePadding\"><div class=\"col6\">"+SUBTASKS[subtask]["Subtype"]+"</div></td>"+
+											"<td class=\"addSortablePadding\"><div class=\"col7\">"+SUBTASKS[subtask]["Subsubtype"]+"</div></td>"+
+											"<td class=\"addSortablePadding drv\"><div class=\"col8\"><span class=\"tooltip10\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(glance.getSubtaskMean("duration", subtask)),DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding\"><div class=\"col9\"><span class=\"tooltip11\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(occ.getSubtaskMean("tttbase", subtask))/1000,DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding occ\"><div class=\"col10\"><span class=\"tooltip12\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(occ.getSubtaskMean("tsot", subtask))/1000,DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding occ\"><div class=\"col11\"><span class=\"tooltip13\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(occ.calculateR([subtask])),DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding glancetr\"><div class=\"col12\"><span class=\"tooltip14\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(glance.getSubtaskMean("tgt", subtask)),DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding glancetr\"><div class=\"col13\"><span class=\"tooltip15\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(glance.getSubtaskMean("nog", subtask)),DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding glancetr\"><div class=\"col14\"><span class=\"tooltip16\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(omitZero(glance.calculateSgd([subtask]))),DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding glanceor\"><div class=\"col15\"><span class=\"tooltip17\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(eor.getSubtask("teort", subtask)),DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding glanceor\"><div class=\"col16\"><span class=\"tooltip18\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(eor.getSubtask("ornog", subtask)),DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding glanceor\"><div class=\"col17\"><span class=\"tooltip19\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(omitZero(eor.getSubtask("sgd",[subtask]))),DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding drv\"><div class=\"col18\"><span class=\"tooltip20\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(driving.calculateDetRel('sumAbsDiffLanePosition',[subtask])),DIGITS)+"</span></div></td>"+
+											"<td class=\"addSortablePadding drv\"><div class=\"col19\"><span class=\"tooltip21\" tooltip-content=\""+subtask+"\">"+math.format(math.mean(driving.calculateDetRel('sumAbsDiffTimeHeadway',[subtask])),DIGITS)+"</span></div></td>"+											
+											"<td class=\"addSortablePadding drt\"><div class=\"col20\"><span class=\"tooltip22\" tooltip-content=\""+subtask+"\">"+math.format(math.median(drt.calculateDetRel([subtask])),DIGITS)+"</span></div></td>"+										
+									  "</tr>";
+
+		}
+		
+		
+		
+		tblBody.innerHTML += tempHTML;
+		Table.auto();//generate filter headers
+
+	}
+		
+	
+	
+  var polarChartOptions = {
+	scaleSteps  : 1,
+	scaleOverride : true,
+    scaleShowLabelBackdrop : true,
+    scaleBackdropColor : "rgba(255,255,255,0.85)",
+    scaleBeginAtZero : true,
+    scaleBackdropPaddingY : 3,
+    scaleBackdropPaddingX : 3,
+    scaleShowLine : true,
+    scaleLineColor: "rgba(0,0,0,.3)",
+    segmentShowStroke : true,
+    segmentStrokeColor : "#fff",
+    segmentStrokeWidth : 2,
+    animationSteps : 30,
+    //animation: false,
+    animationEasing : "easeOutBounce",
+    animateRotate : true,
+    animateScale : true,
+    legendTemplate : "<div class=\"legend <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<segments.length; i++){%><div><span style=\"background-color:<%=segments[i].fillColor%>\">&nbsp;&nbsp;&nbsp;</span> <%if(segments[i].value){%><%=padSpace(segments[i].amount,2)%>% x <%=padSpace(segments[i].value,2)%><%=segments[i].unit%> <%}%> &nbsp; <%if(segments[i].labelLong){%><%=segments[i].labelLong%><%}%>  </div><%}%></div>",
+   	tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= amount %>% x <%= value %><%= unit %>",
+   	customTooltips: pieTooltipCallBack
+  }
+	
+	
+  var pieChartOptions = {
+    segmentShowStroke : true,
+    segmentStrokeColor : "#fff",
+    segmentStrokeWidth : 2,
+    percentageInnerCutout : 50, // This is 0 for Pie charts
+    //animation: false,
+    animationSteps : 30,
+    animationEasing : "easeOutBounce",
+    animateRotate : true,
+    animateScale : true,
+    legendTemplate : "<div class=\"legend <%=name.toLowerCase()%>-legend\"><% for (var i=0; i<segments.length; i++){%><div><span style=\"background-color:<%=segments[i].fillColor%>\">&nbsp;&nbsp;&nbsp;</span> <%if(segments[i].value){%><%=padSpace(segments[i].value,2)%><%}%>% <%if(segments[i].labelLong){%><%=segments[i].labelLong%><%}%>  </div><%}%></div>",
+   	tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value %>%",
+   	customTooltips: pieTooltipCallBack
+  }
+
+  function pieTooltipCallBack(item){
+	  if((!item) && (gLastLegend)){//mouseout reset gLastLegend
+	  var li = gLastLegend.childNodes[0].childNodes;
+		  for(var i= 0; i < li.length; i++){
+			  li[i].style.backgroundColor  = 'transparent';
+		  }
+	  }
+	  if(item.legend){//highlight current
+		 	  
+	  item.legend.children
+		  gLastLegend = item.legend;
+		  item.legend.childNodes[0].childNodes[item.i].style.backgroundColor = '#ffff00';
+	  }
+  }
+  
+  function getColor(n, total, highlight){//helper to get colors for pieChart; get color 'n' of 'total'; if highlight == true, slightly highlighted colors are generated
+    var stepSize = 360 / (total+1); 
+    var retValue = [];
+    var s = 80;
+    var v = 80; 
+    if ((n%2) ==0){v = 50;} 
+    if (highlight){s = 35;} 
+    //var temp = tinycolor("hsv("+stepSize * n+", "+s+", "+v+")");
+    var temp =  tinycolor({ h: stepSize * n, s: s, v: v });
+    return temp.toHexString();
+  }	
+  
+
+  function getLegendLongLabel(i, subMeans, subtaskCollection, unit){//wrapper/helper for getLongLabel() in pieCharts legend
+    var retValue = "";
+  	if (subMeans!= null){
+	  	retValue += math.format(subMeans[i],DIGITS)+ unit;
+	}
+  	retValue += " <span data-needpopup-show=\"#subtask_select_dialog\" onclick=\"gHighlightSubTask="+i+";\" class=\"a mtooltip hand\" tooltip-content=\"view details or change subtask "+(i+1)+"\">"+ getLongLabel(subtaskCollection[i])+"</span>";
+    return retValue;
+  }
+
+  
+  
+  function deleteSubtask(i){
+	  
+	  var confirm = new jBox('Confirm', {
+		content: "Do you really want to remove subtask "+(i+1)+": <br/>"+getLongLabel(gSubtaskArray[i]['subtask'])+" from selection?",
+		width: 350,
+		confirmButton: 'Yes',
+		cancelButton: 'No',
+		overlay: true,
+		zIndex:90000,
+		position: {x: 'center', y: 'center'},
+		confirm: function() {
+			gSubtaskArray.splice(i, 1);
+			refresh();	  
+		},
+		cancel: function() {
+			
+		}
+	});
+	confirm.open();
+	
+  }
+   
+  function moveSubtaskUp(i){
+	  var temp = gSubtaskArray[i-1];
+	  gSubtaskArray[i-1] = gSubtaskArray[i];
+	  gSubtaskArray[i] = temp;
+	  refresh();	  
+  }
+  
+  
+  function moveSubtaskDown(i){
+	  var temp = gSubtaskArray[i+1];
+	  gSubtaskArray[i+1] = gSubtaskArray[i];
+	  gSubtaskArray[i] = temp;
+	  refresh();	  
+  }
+  
+  function enable(i){
+	  gSubtaskArray[i]['enabled'] = true;
+	  refresh();	  
+  }
+  
+  function disable(i){
+	  gSubtaskArray[i]['enabled'] = false;
+	  refresh();	  
+  }
+
+
+	function addMenuHelper(){
+		
+		if (needPopup.target()){//already open => close
+		  needPopup.hide();
+		}else{
+		  gHighlightSubTask=null;//set global add mode
+		  needPopup.show("#subtask_select_dialog");
+		}
+	}
+	  
+  
+    
+  function refreshSelectedSubtaskDiv(){
+	var selectedSubTasksDiv = document.getElementById("selectedSubTasksDiv");
+	var tempHTML = ""; 
+
+	for(var i = 0; i < gSubtaskArray.length; i++){
+			var enabled = gSubtaskArray[i]['enabled'];
+			var subtask = gSubtaskArray[i]['subtask'];
+			if(enabled){
+				tempHTML += "<div id=\"selectedSubTaskDiv"+i+"\" class=\"subTaskDiv\">";
+			}else{
+				tempHTML += "<div id=\"selectedSubTaskDiv"+i+"\" class=\"subTaskDiv disabled\">";				
+			}
+			
+			
+			tempHTML += "<div class=\"composeIconDiv\">";
+				
+			if (i > 0){
+				 tempHTML += "<div><img src=\"img/001_28.png\" alt=\"move subtask "+(i+1)+" up\" class=\"mtooltip hand hvr-pulse composeIcon\" tooltip-content=\"the order is not important, nevertheless you can move subtask "+(i+1)+" one position up\" onclick=\"moveSubtaskUp("+i+");\"/></div>";
+			 }else{
+				 tempHTML += "<div>&nbsp </div>";
+			}
+			tempHTML += "<div><img src=\"img/001_49.png\" alt=\"delete subtask "+(i+1)+"\" class=\"mtooltip hand hvr-pulse composeIcon\" tooltip-content=\"delete subtask "+(i+1)+"\" onclick=\"deleteSubtask("+i+");\"/></div>";
+			tempHTML += "<div><img src=\"img/001_60.png\" alt=\"view details or change subtask "+(i+1)+"\" data-needpopup-show=\"#subtask_select_dialog\"  onclick=\"gHighlightSubTask="+i+";\" class=\"mtooltip hand hvr-pulse composeIcon\" tooltip-content=\"view details or change subtask "+(i+1)+"\"/></div>";
+
+			if(enabled){
+				tempHTML += "<div><img src=\"img/001_07.png\" alt=\"disable subtask "+(i+1)+" temporary in calculations\" class=\"mtooltip hand hvr-pulse composeIcon\" tooltip-content=\"disable subtask "+(i+1)+" temporary in calculations\" onclick=\"disable("+i+");\"/></div>";
+			}else{
+				tempHTML += "<div><img src=\"img/002_63.png\" alt=\"enable subtask "+(i+1)+" again\" class=\"mtooltip hand hvr-pulse composeIcon\" tooltip-content=\"enable subtask "+(i+1)+" again\" onclick=\"enable("+i+");\"/></div>";				
+			}
+			if (i < (gSubtaskArray.length-1)){
+				 tempHTML += "<div><img src=\"img/001_26.png\" alt=\"move subtask "+(i+1)+" down\" class=\"mtooltip hand hvr-pulse composeIcon\" tooltip-content=\"the order is not important, nevertheless you can move subtask "+(i+1)+" one position down\" onclick=\"moveSubtaskDown("+i+");\"/></div>";
+			 }else{
+				 tempHTML += "<div>&nbsp </div>";
+			}
+			
+			tempHTML += "</div>";
+
+			tempHTML += "<div class=\"composeTitleDiv\">";
+			tempHTML += "Subtask "+(i+1)+":<br/>"+getLongLabel(subtask);
+			tempHTML += "</div>";
+			
+			
+			tempHTML += "<div class=\"composeImageDiv\">";
+			tempHTML += "<img src=\"img/"+SUBTASKS[subtask]["Image"]+"\" width=\"120\"/>";
+			tempHTML += "</div>";
+
+			
+			tempHTML += "</div>";//selectedSubTaskDiv
+			
+
+	}
+	
+	selectedSubTasksDiv.innerHTML = tempHTML;
+	
+	attachGeneralTooltips();//reattach tooltips
+	 
+  }
+   	
+</script>  
+  
+</head>
+<body>
+
+	<div id="wait">
+		<div class="jBox-spinner"></div>
+	</div>
+	
+	<div id="newMenu" class="tooltipMenu hvr-pulse hand" tooltip-content="New Window">
+		<a href="./index.html" target="_blank"><img src="img/002_25.png" width="16" alt="config menu"/></a>
+	</div>
+	
+	<div id="configMenu" class="tooltipMenu hvr-pulse hand" tooltip-content="Configuration">
+		<img src="img/002_01.png" alt="config menu"/>
+	</div>
+	
+	<div id="taskMenu" class="tooltipMenu hvr-pulse hand" tooltip-content="Your Composed Task">
+		<img src="img/002_46b.png" alt="task menu"/>
+	</div>
+
+	<div id="addMenu" class="tooltipMenu hvr-pulse hand" tooltip-content="Add Subtask to Composed Task">
+		<img src="img/001_01b.png" alt="add subtask" onclick="addMenuHelper();"/>
+	</div>
+	
+	<div id="saveMenu" class="tooltipMenu hvr-pulse hand" tooltip-content="When finished, store or bookmark this link to save your result. (e.g., right click: bookmark or copy link)">
+		<a href="/" class="saveUrl" target="_blank"><img src="img/001_35b.png" alt="config menu"/></a>
+	</div>
+		
+	<div id="tutorialMenu" class="tooltipMenu hvr-pulse hand" tooltip-content="Short video tutorial on Youtube">
+		<a href="https://youtu.be/9KhcG62aSaI" target="_blank"><img src="img/002_66b.png" width="16" alt="tutorial"/></a>
+	</div>
+
+	<div id="aboutMenu" class="tooltipMenu hvr-pulse hand" tooltip-content="Contact, Datenschutz, About, Credits">
+		<img src="img/001_54b.png" width="16" alt="about"/>
+	</div>
+
+	
+	
+	<div id="aboutMenuContent" class="displayNone">
+	 <div>
+	 
+	 <div class="center">
+		 <a href="#" onclick="gAboutMenu.close();" class="hvr-wobble-top"><img src="img/done.png" width="280"/></a>
+	</div>
+		
+		<div class="aboutDiv">
+		 	<ul>
+			  <li><a href="#" onclick="about('aboutAbout');">About</a></li>
+			  <li><a href="#" onclick="about('aboutTutorials');">Tutorials</a></li>
+			  <li><a href="#" onclick="about('aboutCredits');">Credits</a></li>
+			  <li><a href="#" onclick="about('aboutChangeLog');">Change Log</a></li>
+			  <li><a href="#" onclick="about('aboutContact');">Contact</a></li>
+			 </ul>
+		</div>
+		
+				
+		<div class="aboutDiv" id="aboutAbout">
+		  <b>About</b><br/><br/>
+		   This is version <span id="version"></span>
+		   <script type="text/javascript" charset="utf-8">  $('#version').html(VERSION);</script> (<a href="#" onclick="about('aboutChangeLog');">change log</a>) 
+		   <br/>
+		   <br/>
+			If this is a local copy, or this site is visited and hosted on a different domain;<br/>the home of this project is : 
+			<br/>
+			<a href="http://www.distract.one" target="_blank"> <img src="http://www.distract.one/img/apple-touch-icon.png" width="60"/> http://www.distract.one </a>
+			<br/>
+			<br/>
+			The source code (html/js) is of course contained within this page (e.g., use 'view source' in your browser). If it is more convenient for you to see the source on GitHub: 
+			<br/><a href="https://github.com/MichaelKrause/DistractOne" target="_blank">https://github.com/MichaelKrause/DistractOne</a>.
+			<br/>At the moment distract.one and the github repo are NOT inter-linked via github pages (.io).	 
+		   <br/>
+		   <br/>
+			This tool is maybe helpfull e.g., to assess ideas or paper prototypes. 
+			<b>I no case, this tool is intended or should be used as replacement for a driver distraction test (e.g., occlusion)!</b>
+		   <br/>			  		   
+		   <br/>
+			This tool is one of the helpers developed during and for the doctoral thesis of Michael Krause (Institute of Ergonomics, Technical University of Munich).
+			The web application is self-containing (except the video tutorial), if you simply save it as complete website locally.
+		   <br/>			  		   
+		   <br/>
+			The project heavily uses other projects and libraries (see credits below) with different open source licences. My parts of this online tool are intended to be MIT licenced (the term 'associated documentation' does NOT include the doctoral thesis document, itself!):
+		   <br/>			  		   
+		   <br/>
+		   <i>
+			Copyright (c) 2016 Michael Krause
+		   <br/>			  		   
+		   <br/>	
+			Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+		   <br/>			  		   
+		   <br/>
+
+			The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+		   <br/>			  		   
+		   <br/>
+
+			THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.			
+		   </i>				
+		</div>
+
+		<div class="aboutDiv" id="aboutTutorials">
+		<b>Tutorials</b><br/>
+			A short video tutorial was recorded and is hosted on youtube <a href="https://youtu.be/9KhcG62aSaI" target="_blank">https://youtu.be/9KhcG62aSaI</a>. It's also accessible via the navigation icon in the left navigation bar.
+			The thesis holds a short manual (about 5 pages) in the appendix <a href="TODO" target="_blank">TODO  publish if successful</a>. The thesis describes the background, experiments and validation of this online tool and driver distraction model. 
+			If you need an introduction to driver distraction assessment <a href="https://www.researchgate.net/publication/281550871_Suitability_for_Use_while_Driving_-_Introduction_for_App_Developers" target="_blank">Suitability for Use while Driving -- Introduction for (App) Developers</a>, can be a start.
+		</div>
+
+		
+		<div class="aboutDiv" id="aboutCredits">
+		  <b>Credits</b><br/>
+				This open source tool uses the following open source projects. Many thanks to all the fantastic open source contributors and authors! 
+						 	
+			<div class="creditDiv">
+				<b>jquery</b> 
+				<br/>The MIT License
+				<br/><a href="http://jquery.com/" target="_blank">http://jquery.com</a>
+				<br/><a href="https://github.com/jquery/jquery" target="_blank">https://github.com/jquery/jquery</a>
+			</div>
+	
+		
+			<div class="creditDiv">
+				<b>mathjs</b>
+				<br/>Copyright (c) 2013-2015 Jos de Jong
+				<br/>Apache 2 Licence
+				<br/><a href="http://mathjs.org/" target="_blank">http://mathjs.org</a>
+				<br/><a href="https://github.com/josdejong/mathjs" target="_blank">https://github.com/josdejong/mathjs</a>
+			</div>
+	
+			
+			<div class="creditDiv">
+				<b>Table.js</b>
+				<br/>Copyright (c) 2007 Matt Kruse
+				<br/>Dual licensed under the MIT and GPL licenses
+				<br/><a href="http://javascripttoolbox.com/" target="_blank">http://javascripttoolbox.com</a>		
+				<br/><a href="http://www.javascripttoolbox.com/lib/table/" target="_blank">http://www.javascripttoolbox.com/lib/table/</a>
+			</div>
+	
+			
+			<div class="creditDiv">
+				<b>needPopup</b>
+				<br/>Copyright (c) 2014 [Dzmitry Vasileuski]
+				<br/>The MIT License
+				<br/><a href="https://github.com/DzmVasileusky/jquery-needPopup" target="_blank">https://github.com/DzmVasileusky/jquery-needPopup</a>
+			</div>
+	
+			<div class="creditDiv">		
+				<b>jBox</b>
+				<br/>Copyright Stephan Wagner
+				<br/>The MIT License
+				<br/><a href="http://stephanwagner.me/jBox" target="_blank">http://stephanwagner.me/jBox</a>
+				<br/><a href="https://github.com/StephanWagner/jBox" target="_blank">https://github.com/StephanWagner/jBox</a>
+			</div>
+	
+			<div class="creditDiv">
+				<b>seedrandom.js</b>
+				<br/>Copyright 2015 David Bau
+				<br/>The MIT License
+				<br/><a href="https://github.com/davidbau/seedrandom" target="_blank">https://github.com/davidbau/seedrandom</a>
+				
+			</div>
+			
+
+			<div class="creditDiv">
+				3 Free 24x24 web development icon sets
+				<br/>free of known copyright restrictions
+				<br/>by Andrew Zhebrakov
+				<br/><a href="http://www.icojam.com/blog/?p=139" target="_blank">http://www.icojam.com/blog/?p=139</a>
+				<br/><a href="https://www.iconfinder.com/iconsets/icojoy" target="_blank">https://www.iconfinder.com/iconsets/icojoy</a>
+			</div>
+
+			<div class="creditDiv">
+				<b>Chart.js</b>
+				<br/>Copyright (c) 2013-2015 Nick Downie
+				<br/>The MIT License
+				<br/><a href="http://www.chartjs.org/" target="_blank">http://www.chartjs.org</a>
+				<br/><a href="https://github.com/nnnick/Chart.js" target="_blank">https://github.com/nnnick/Chart.js</a>
+			</div>
+			
+			<div class="creditDiv">
+				<b>jQuery Sparklines</b>
+				<br/>(c) Splunk, Inc; Gareth Watts (gareth@splunk.com)
+				<br/>New BSD License
+				<br/><a href="http://omnipotent.net/jquery.sparkline/" target="_blank">http://omnipotent.net/jquery.sparkline/</a>
+				<br/><a href="https://github.com/gwatts/jquery.sparkline/" target="_blank">https://github.com/gwatts/jquery.sparkline/</a>
+			</div>			
+			
+			<div class="creditDiv">
+				<b>TinyColor</b>
+				<br/>Copyright (c), Brian Grinstead, http://briangrinstead.com
+				<br/>The MIT License
+				<br/><a href="https://bgrins.github.io/TinyColor/" target="_blank">https://bgrins.github.io/TinyColor/</a>
+				<br/><a href="https://github.com/bgrins/TinyColor" target="_blank">https://github.com/bgrins/TinyColor</a>
+			</div>	
+
+
+			
+			<div class="creditDiv">
+				<b>Hover.css</b>
+				<br/>Copyright (c) 2014-2015 Ian Lunn
+				<br/>The MIT License
+				<br/><a href="http://ianlunn.github.io/Hover/" target="_blank">http://ianlunn.github.io/Hover/</a>				
+			</div>
+		</div>	
+
+		<div class="aboutDiv" id="aboutChangeLog">
+			**********************************
+			<br/><b>Version history/changes:</b>
+			<br/>**********************************
+			<br/>
+			<br/>V.1 Michael Krause 10/2016
+			<br/>
+			<br/>
+			<br/>
+		</div>
+		
+		<div class="aboutDiv" id="aboutContact">
+ 		<b>Contact</b><br/><br/>
+		  <img src="http://cv.krause.work/mk.jpg"/><br/>
+		  Michael Krause<br/>
+		  mail: krause(at)tum.de<br/>
+		  <br/>
+		<small>
+		<b>Datenschutz (German legal stuff)</b>
+		Die Betreiber dieser Seiten nehmen den Schutz Ihrer pers&ouml;nlichen Daten sehr ernst. Wir behandeln Ihre personenbezogenen Daten vertraulich und entsprechend der gesetzlichen Datenschutzvorschriften sowie dieser Datenschutzerkl&auml;rung.
+		Die Nutzung unserer Webseite ist in der Regel ohne Angabe personenbezogener Daten m&ouml;glich. Soweit auf unseren Seiten personenbezogene Daten (beispielsweise Name, Anschrift oder E-Mail-Adressen) erhoben werden, erfolgt dies, soweit m&ouml;glich, stets auf freiwilliger Basis. Diese Daten werden ohne Ihre ausdr&uuml;ckliche Zustimmung nicht an Dritte weitergegeben.
+		Wir weisen darauf hin, dass die Daten&uuml;bertragung im Internet (z.B. bei der Kommunikation per E-Mail) Sicherheitsl&uuml;cken aufweisen kann. Ein l&uuml;ckenloser Schutz der Daten vor dem Zugriff durch Dritte ist nicht m&ouml;glich.		  
+		Server-Log-Files. Der Provider der Seiten erhebt und speichert automatisch Informationen in so genannten Server-Log Files, die Ihr Browser automatisch an uns &uuml;bermittelt. Diese Daten sind f&uuml;r uns nicht bestimmten Personen zuordenbar. Eine Zusammenf&uuml;hrung dieser Daten mit anderen Datenquellen wird nicht vorgenommen. Wir behalten uns vor, diese Daten nachtr&auml;glich zu pr&uuml;fen, wenn uns konkrete Anhaltspunkte f&uuml;r eine rechtswidrige Nutzung bekannt werden.
+		</small>		  
+		</div>
+		
+	 </div>
+	</div>
+	
+	
+		
+
+<div id="allResults">
+	<!--div>
+		<div class="resultMetricTitle">Status</div>
+		<div class="resultMetricContent">
+			<div id="countStats"></div>  
+		</div> 
+	</div//--> 
+	
+	<div class="resultMetricDiv">
+		<div class="resultMetricTitle">Total Task Time while standing</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultTttSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)">Loading..</span>
+			</div>
+			<div id="resultTttSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultTttChart" class="pieChartWrapper">
+				<canvas id="resultTttCanvas" class="pieChart"></canvas>
+				<div id="resultTttCanvasLegend"></div>
+			</div>
+		</div>
+	</div>
+
+	<div class="resultMetricDiv drv">
+		<div class="resultMetricTitle">Driving &ndash; Total Task Time while driving</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultTttDrvSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)">Loading..</span>
+			</div>
+			<div id="resultTttDrvSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultTttDrvChart" class="pieChartWrapper">
+				<canvas id="resultTttDrvCanvas" class="pieChart"></canvas>
+				<div id="resultTttDrvCanvasLegend"></div>
+			</div>
+		</div>
+	</div>
+	
+		
+	<div class="resultMetricDiv occ">
+		<div class="resultMetricTitle">Occlusion &ndash; Total Shuter Open Time (TSOT)</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultTsotSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)<br/>red line: AAM P85-limit 15s">Loading..</span>
+			</div>
+			<div id="resultTsotSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultTsotChart" class="pieChartWrapper">
+				<canvas id="resultTsotCanvas" class="pieChart"></canvas>
+				<div id="resultTsotCanvasLegend"></div>
+			</div>
+		</div>
+	</div>
+	
+
+	<div class="resultMetricDiv occ">
+		<div class="resultMetricTitle">Occlusion &ndash; R-ratio</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultRSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)">Loading..</span>
+			</div>
+			<div id="resultRSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultRChart" class="pieChartWrapper">
+				<canvas id="resultRCanvas" class="pieChart"></canvas>
+				<div id="resultRCanvasLegend"></div>
+			</div>
+		</div>
+	</div>	
+	
+	<div class="resultMetricDiv glancetr">
+		<div class="resultMetricTitle">Glance &ndash; Total Glance Time (TGT)</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultTgtSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)<br/>red line: AAM P85-limit 15s">Loading..</span>
+			</div>
+			<div id="resultTgtSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultTgtChart" class="pieChartWrapper">
+				<canvas id="resultTgtCanvas" class="pieChart"></canvas>
+				<div id="resultTgtCanvasLegend"></div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="resultMetricDiv glancetr">
+		<div class="resultMetricTitle">Glance &ndash; Number of Glances (NoG), task related</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultNogSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)">Loading..</span>
+			</div>
+			<div id="resultNogSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultNogChart" class="pieChartWrapper">
+				<canvas id="resultNogCanvas" class="pieChart"></canvas>
+				<div id="resultNogCanvasLegend"></div>
+			</div>
+		</div>
+	</div>
+	
+	
+	<div class="resultMetricDiv glancetr">
+		<div class="resultMetricTitle">Glance &ndash; Single Glance Duration (SGD), task related</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultSgdSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)<br/>red line: AAM 2s (P85)">Loading..</span>
+			</div>
+			<div id="resultSgdSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultSgdChart" class="pieChartWrapper">
+				<canvas id="resultSgdCanvas" class="pieChart"></canvas>
+				<div id="resultSgdCanvasLegend"></div>
+			</div>
+		</div>
+	</div>	
+	
+	<div class="resultMetricDiv glanceor">
+		<div class="resultMetricTitle">Glance &ndash; Total Eyes off Road Time (TEORT)</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultTeortSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)<br/>red line: NHTSA P85-limit 12s">Loading..</span>
+			</div>
+			<div id="resultTeortSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultTeortChart" class="pieChartWrapper">
+				<canvas id="resultTeortCanvas" class="pieChart"></canvas>
+				<div id="resultTeortCanvasLegend"></div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="resultMetricDiv glanceor">
+		<div class="resultMetricTitle">Glance &ndash; Number of Glances (NoG), off Road</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultNogOrSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)">Loading..</span>
+			</div>
+			<div id="resultNogOrSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultNogOrChart" class="pieChartWrapper">
+				<canvas id="resultNogOrCanvas" class="pieChart"></canvas>
+				<div id="resultNogOrCanvasLegend"></div>
+			</div>
+		</div>
+	</div>
+	
+	
+	<div class="resultMetricDiv glanceor">
+		<div class="resultMetricTitle">Glance &ndash; Single Glance Duration (SGD), off Road</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultSgdOrSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)<br/>red line: NHTSA 2s (P85)">Loading..</span>
+			</div>
+			<div id="resultSgdOrSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultSgdOrChart" class="pieChartWrapper">
+				<canvas id="resultSgdOrCanvas" class="pieChart"></canvas>
+				<div id="resultSgdOrCanvasLegend"></div>
+			</div>
+		</div>
+	</div>	
+	
+	
+	<div class="resultMetricDiv drt">
+		<div class="resultMetricTitle">DRT &ndash; Detection Response Task (Tactile)<br/> %-Deterioration to baseline reaction time</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultDrtSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)">Loading..</span>
+			</div>
+			<div id="resultDrtSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultDrtChart" class="pieChartWrapper">
+				<canvas id="resultDrtCanvas" class="pieChart"></canvas>
+				<div id="resultDrtCanvasLegend"></div>
+			</div>
+		</div>
+	</div>	
+	
+		
+	<div class="resultMetricDiv drv">
+		<div class="resultMetricTitle">Driving &ndash; Lateral Drift<br/> %-Deterioration to baseline performance</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultDrvLatSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)<br/>red line: deterioration reference from an experiment with radio tuning">Loading..</span>
+			</div>
+			<div id="resultDrvLatSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultDrvLatChart" class="pieChartWrapper">
+				<canvas id="resultDrvLatCanvas" class="pieChart"></canvas>
+				<div id="resultDrvLatCanvasLegend"></div>
+			</div>
+		</div>
+	</div>	
+
+	<div class="resultMetricDiv drv">
+		<div class="resultMetricTitle">Driving &ndash; Longitudinal Drift<br/> %-Deterioration to baseline performance</div>
+		<div class="resultMetricContent">
+			<div class="resultSparklineWrapper">
+				<span class="resultDrvLngSparkline resultSparkline tooltip" tooltip-content="blue cross: 85th percentile (P85)<br/>red line: deterioration reference from an experiment with radio tuning">Loading..</span>
+			</div>
+			<div id="resultDrvLngSparklineLegend" class="resultSparklineLegend"></div>	
+			<div id="resultDrvLngChart" class="pieChartWrapper">
+				<canvas id="resultDrvLngCanvas" class="pieChart"></canvas>
+				<div id="resultDrvLngCanvasLegend"></div>
+			</div>
+		</div>
+	</div>	
+
+	
+</div>
+
+
+
+  <div id='subtask_select_dialog' class="needpopup" data-needpopup-options="custom">
+	<table id="subTable" class="subtasks table-autosort:1 table-autofilter table-stripeclass:alternate table-filtered-rowcount:t1filtercount table-rowcount:t1allcount">
+		  <thead>
+			<tr>
+				<th><div class="col1"><span class="resetbutton hvr-pulse hand tooltip"  tooltip-content="Reset filter and sorting in this table" onclick="resetSubtaskTable();">reset</span></div></th>
+				<th>Symbol-<br/><div class="col2">Image</div></th>
+			 	<th title="Click to sort" class="table-autofilter table-sortable:numeric table-sortable"><div class="col3">ID</div></th>
+				<th title="Click to sort" class="table-filterable table-sortable:default table-sortable"><div class="col4">Mode</div></th>
+				<th title="Click to sort" class="table-filterable table-sortable:default table-sortable"><div class="col5">Type</div></th>
+				<th title="Click to sort" class="table-filterable table-sortable:default table-sortable"><div class="col6">Subtype</div></th>
+				<th title="Click to sort" class="table-filterable table-sortable:default table-sortable"><div class="col7">Subsubtype</div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink drv" tooltip-content="Mean Total Task Time (TTT) while driving in seconds"><div class="col8"><small>TTT<br/>DRV[s]</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink" tooltip-content="Mean Total Task Time (TTT) while standing still in seconds"><div class="col9"><small>TTT<br/>[s]</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink occ" tooltip-content="Occlusion Mean Total Shutter Open Time (TSOT) in seconds"><div class="col10"><small>TSOT<br/>[s]</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink occ" tooltip-content="Occlusion Mean R ratio (= TSOT / TTT)"><div class="col11"><small>R</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink glancetr" tooltip-content="Mean Total Glance Time (TGT) while driving in seconds"><div class="col12"><small>TGT<br/>[s]</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink glancetr" tooltip-content="Mean Number Of Glances (NoG) task related, while driving"><div class="col13"><small>NOG<br/>TR</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink glancetr" tooltip-content="Mean Single Glance Duration (SGD) task related, while driving"><div class="col14"><small>SGD<br/>TR[s]</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink glanceor" tooltip-content="Mean Total Eyes off Road Time (TEORT) while driving in seconds"><div class="col15"><small>TEORT<br/>[s]</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink glanceor" tooltip-content="Mean Number Of Glances (NoG) off Road, while driving"><div class="col16"><small>NOG<br/>OR</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink glanceor" tooltip-content="Mean Single Glance Duration (SGD) off Road, while driving"><div class="col17"><small>SGD<br/>OR[s]</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink drv" tooltip-content="Mean Percentual Deterioration in Lateral Drift, in relation to just driving"><div class="col18"><small>DLP<br/>[%]</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink drv" tooltip-content="Mean Percentual Deterioration in Longitudinal Drift, in relation to just driving"><div class="col19"><small>DHW<br/>[%]</small></div></th>
+				<th title="Click to sort" class="tooltip table-sortable:numeric table-sortable nolink drt" tooltip-content="Median Percentual Deterioration in the Detection Response Task reaction time, in relation to just driving"><div class="col20"><small>DRT<br/>[%]</small></div></th>
+			</tr>
+		</thead>
+		<tbody id="subtaskstableBody">
+		</tbody>
+	</table>
+  </div>
+
+  
+    <script src="js/needpopup.js" type="text/javascript" charset="utf-8"></script>
+       
+	<script type="text/javascript" charset="utf-8"> 
+		//intentionaly at end of file	 
+	
+		needPopup.config.custom = {
+	
+			'removerPlace': 'outside',
+			//'removerPlace': false,
+			'closeOnOutside': true,
+			onShow: function() {
+				
+
+				gTaskMenu.close();
+				gConfigMenu.close();
+				gAboutMenu.close();
+				
+				//remove old evtl old hightlything
+				var old = $('.highlightSubTask').removeClass("highlightSubTask");
+				
+				if(gHighlightSubTask != null){//edit mode
+					
+
+					$('.editImg').show();//show
+					$('.editImg').css("visibility", "");//reset also visibility
+					$('.addImg').hide();//"=>"-img hide all without space
+					
+					var thisSubtask = '#editImg'+gSubtaskArray[gHighlightSubTask]['subtask'];
+					$(thisSubtask).css("visibility", "hidden");//hide one specific but keep space
+					
+					var subtask = gSubtaskArray[gHighlightSubTask]['subtask'];
+				    var nr = SUBTASKS[subtask]["Nr"];
+				   	resetSubtaskTable();	
+					var elem = document.getElementById("subTableRow"+nr);  
+					elem.scrollIntoView(true);
+					elem.className += " highlightSubTask";
+					
+				}else{//add mode
+				
+					$('.addImg').show();//show all edit images
+					$('.editImg').hide();//"=>"-img hide all without space
+				
+				}
+								
+			},
+			
+			onHide: function() {
+								
+				
+			}
+		};
+		needPopup.init();
+	</script>
+	
+</body>
+</html>

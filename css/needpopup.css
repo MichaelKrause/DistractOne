@@ -1,0 +1,136 @@
+/*********************************************** 
+  needPopup 
+  - Version 1.0.0
+  - Copyright 2015 Dzmitry Vasileuski
+  - Licensed under MIT (http://opensource.org/licenses/MIT)
+***********************************************/
+/* Block page scroll
+***********************************************/
+.needpopup-opened,
+.needpopup-opened body {
+  overflow: hidden;
+}
+.needpopup-opened.needpopup-scrolled,
+.needpopup-opened.needpopup-scrolled body {
+  height: auto;
+}
+.needpopup-opened.needpopup-scrolled body {
+  position: fixed;
+
+  width: 100%;
+}
+/* Popup wrapper
+***********************************************/
+.needpopup_wrapper {
+  position: fixed;
+  z-index: 999;
+  top: 0;
+  left: 0;
+
+  visibility: hidden;
+  overflow: hidden;
+
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  
+  padding-top: 30px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+  padding-left: 30px;
+
+
+  -webkit-transition: opacity .3s ease;
+          transition: opacity .3s ease;
+
+  opacity: 0;
+  background: #000;
+  background: rgba(0, 0, 0, .8);
+}
+.needpopup-opened .needpopup_wrapper {
+  visibility: visible;
+
+  opacity: 1;
+}
+.needpopup-overflow .needpopup_wrapper {
+  padding: 10px;
+}
+/* Popup appearence
+***********************************************/
+.needpopup {
+  position: relative;
+  z-index: 9999;
+  top: 0px;
+  left: 0%;
+
+  display: inline-block;
+  
+  overflow-x: auto;
+  overflow-y: hidden;
+  
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+        	        
+  max-width: 100%;
+  margin-left: 10px;
+  padding: 0px;
+
+  -webkit-transform: scale(.1, .1);
+      -ms-transform: scale(.1, .1);
+          transform: scale(.1, .1);
+
+  opacity: 0;
+  background: #fff;
+}
+.needpopup.opened {
+  -webkit-transition: opacity .5s ease, -webkit-transform .5s ease;
+          transition: opacity .5s ease, transform .5s ease;
+  -webkit-transform: scale(1, 1);
+      -ms-transform: scale(1, 1);
+          transform: scale(1, 1);
+
+  opacity: 1;
+}
+.needpopup.stacked {
+  top: 0 !important;
+
+  margin-top: 0 !important;
+}
+.needpopup-overflow .needpopup {
+  left: 0;
+
+  width: auto;
+  margin-left: 0;
+}
+/* Popup remover
+***********************************************/
+.needpopup_remover {
+  position: fixed;
+  z-index: 9999;
+  top: 5px;
+  right: 5px;
+
+  font-size: 30px;
+  line-height: .5;
+  color: #fff;
+
+  text-decoration: none;
+}
+.needpopup_remover:hover {
+  color: #ccc;
+}
+.needpopup_remover:before {
+  content: '×';
+}
+.needpopup .needpopup_remover {
+  top: 10px;
+  right: 10px;
+
+  font-size: 20px;
+  line-height: .5;
+  color: #000;
+}
+.needpopup .needpopup_remover:hover {
+  color: #ccc;
+}

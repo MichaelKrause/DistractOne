@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<!--
+
+MIT licence
+
+Copyright (c) 2016 Michael Krause
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+//-->
+
+<html lang="en-US">
+<head>
+  <title>test</title>
+  <meta charset="utf-8">
+  <script src="js/math.min.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/helper.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/drt.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/occ.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/glance.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/driving.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/eor.js" type="text/javascript" charset="utf-8"></script> 
+
+</head>
+<body>
+
+<script>
+
+
+
+/*
+  document.write('<br/>test: ');
+  document.write(math.multiply([1, 0, 2, 3], 2));
+  document.write('<br/>test: ');
+  document.write(math.add([1, 0, 2, 0], [2, 1, 1, 1]));
+  document.write('<br/>test: ');
+  //document.write(drt.calculateDurationMs(["1010200"]));
+  document.write('<br/>test: ');
+document.write('<br/>test: ');
+//document.write(occ.calculateR(["1010200", "2230300"]));
+document.write('<br/>----: ');
+document.write('<br/>');
+
+document.write('<br/>parse:');
+//document.write(parse(drt["expData"]["rt"]["1010100"])[3]);
+var test = [,,,1];
+document.write(test[0]==undefined);
+document.write('<br/>"1010100":[0,588492,727908,498772|503292|392244|445052,443632,0,0,530732,0,0,0,0,0,366684,0,0,0,0,0,410888,0,0,399096,0],');  
+document.write('<br/>availability:');
+document.write(drt.getAvailability(["2230300"]));
+document.write('<br/>availability:');
+document.write(drt.getAvailability(["1010200"]));
+
+    //var filteredDuration = math.filter(durationMsArray, math.isPositive);//exclude durations with = 0
+    //var meanDurationMs = math.mean(filteredDuration);
+
+    
+document.write('<br/>calculateDetAbs:');
+document.write(drt.calculateDetAbs(["1010200"]));
+document.write('<br/>calculateDetRel:');
+document.write(drt.calculateDetRel(["1010200"]));
+//document.write(drt.calculateRtUs(["1010200", "2230300", "2210300"]));
+    
+document.write('<br/>getMedianRt:');
+document.write(drt.getMedianRt("1010200"));
+    
+    
+document.write('<br/>test:');
+//document.write(merge(drt["expData"]["rt"]["2210300"][0],[1]));
+//document.write(math.median([]));
+
+document.write('<br/>2210300:');
+document.write(drt['expData']['rt']['2210300'].length);
+document.write('<br/>2210400:');
+document.write(drt['expData']['rt']['2210400'].length);
+document.write('<br/>median:');
+document.write(drt.getMedianRt(["2210300"]));
+*/
+
+
+/* test occ
+document.write('<br/>occ.getSubtaskMean(\"tsot\", "1010200"):');
+document.write(occ.getSubtaskMean("tsot", "1010200"));
+document.write('<br/>occ.getSubtaskMean(\"tsot\", "2110300"):');
+document.write(occ.getSubtaskMean("tsot", "2110300"));
+document.write('<br/>occ.getSubtaskMean(\"tsot\","1260300"):');
+document.write(occ.getSubtaskMean("tsot", "1260300"));
+document.write('<br/>occ.calculate("tsot",["1010200", "2110300", "1260300"])');
+document.write(occ.calculate("tsot",["1010200", "2110300", "1260300"]));
+document.write('<br/>occ.calculateR(["1010200", "2110300", "1260300"])');
+document.write(occ.calculateR(["1010200", "2110300", "1260300"]));
+document.write('<br/>occ.percentages("tsot",["1010200","1020200","1030200"]):');
+document.write(occ.percentages("tsot",["1010200","1020200","1030200"]));
+*/
+
+
+
+/* test drt
+document.write('<br/>drt.getSubtaskMeanDuration("1100300"):');
+document.write(drt.getSubtaskMeanDuration("1100300"));
+ 
+document.write('<br/>drt.calculateDurationMs(["1100300"]):');
+document.write(drt.calculateDurationMs(["1100300"]));
+document.write('<br/>drt.calculateDurationMs(["1010200","1100300"]):');
+document.write(drt.calculateDurationMs(["1010200","1100300"]));
+document.write('<br/>drt.getHitCount(["1100300"]):');
+document.write(drt.getHitCount(["1100300"]));
+document.write('<br/>drt.getAvailability(["1100300"]):');
+document.write(drt.getAvailability(["1100300"]));
+document.write('<br/>drt.getMedianRt(["1100300"]):');
+document.write(drt.getMedianRt(["1100300"]));
+document.write('<br/>drt.calculateRtUs(["1100300","1130300"]):');
+document.write(drt.calculateRtUs(["1100300","1130300"]));
+document.write('<br/>drt.calculateDetAbs(["1100300","1130300"]):');
+document.write(drt.calculateDetAbs(["1100300","1130300"]));
+document.write('<br/>drt.calculateDetRel(["1100300","1130300"]):');
+document.write(drt.calculateDetRel(["1100300","1130300"]));
+
+*/
+
+
+
+/* test glance
+document.write('<br/>glance.getSubtaskMean("nog","1100300"):');
+document.write(glance.getSubtaskMean("nog","1100300"));
+document.write('<br/>glance.calculateDuration(["1100300"]):');
+document.write(glance.calculateDuration(["1100300"]));
+document.write('<br/>glance.calculateDuration(["1010200","1100300"]):');
+document.write(glance.calculateDuration(["1010200","1100300"]));
+document.write('<br/>glance.calculateNog(["1010200","1020200"]):');
+document.write(glance.calculateNog(["1010200","1020200"]));
+document.write('<br/>glance.calculateSgd(["1010200","1020200","1030200"]):');
+document.write(glance.calculateSgd(["1010200","1020200","1030200"]));
+
+*/
+
+/* test driving
+document.write('<br/>driving.calculateSum(sumAbsDiffTimeHeadway,["1010200","1020200","1030200"]):');
+document.write(driving.calculateSum('sumAbsDiffTimeHeadway',["1010200","1020200","1030200"]));
+document.write('<br/>driving.calculateSum(sumAbsDiffLanePosition,["1010200","1020200","1030200"]):');
+document.write(driving.calculateSum('sumAbsDiffLanePosition',["1010200","1020200","1030200"]));
+document.write('<br/>driving.calculateSumNormalized(sumAbsDiffLanePosition,["1010200","1020200","1030200"]):');
+document.write(driving.calculateSumNormalized('sumAbsDiffLanePosition',["1010200","1020200","1030200"]));
+document.write('<br/>driving.percentages(sumAbsDiffLanePosition,["1010200","1020200","1030200"]):');
+document.write(driving.percentages('sumAbsDiffLanePosition',["1010200","1020200","1030200"]));
+
+document.write('<br/>glance.percentageSgd(["1010200","1020200","1030200"]):');
+document.write(glance.percentageSgd(["1010200","1020200","1030200"]));
+*/
+
+
+
+//EOR eye off road
+document.write('<br/>eor.percentages("ornog",["1010200","1020200","1030200"]):');
+document.write(eor.percentages("ornog",["1010200","1020200","1030200"]));
+   
+document.write('<br/>eor.getSubtask("sgd","1010200"):');
+document.write(eor.getSubtask("sgd","1010200"));
+
+</script>
+
+</body>
+</html>
