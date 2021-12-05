@@ -50,8 +50,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	 		if (temp.length > 0){ key = decodeURIComponent(temp[0]);}
 	 		if (temp.length > 1){ value = decodeURIComponent(temp[1]);}
 			switch (key) {
-			    case 'subtask': 
-			    	return value;
+			    case 'subtask':
+					if (value.match(/^[0-9]+$/)){
+						return value;
+					}else{
+						console.log('seems not a number');
+					}
 			    break;			 
 			 
 			    default: //console.log('handleUrl unknown:'+key +value); 
@@ -135,15 +139,20 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 			    break;
 			    case URL_SUBTASK:
-			        var temp = {subtask: value, enabled: true};  
-			    	gSubtaskArray.push(temp);
+					if (value.match(/^[0-9]+$/)){
+						var temp = {subtask: value, enabled: true};  
+						gSubtaskArray.push(temp);
+					}else{
+						console.log('seems not a number');
+					}
 			    break;
 			    case URL_DISABLED://disable last added subtask
 			    	gSubtaskArray[gSubtaskArray.length-1]['enabled'] = false;
 			    break;
 			    case URL_TITLE:
-				document.title = "Distract.one - "+ value; 
-				gTitle = value; 
+					var t = value.replace(/\W/g, '');
+					document.title = "Distract.one - "+ t; 
+					gTitle = t; 
 			    break;
 
 			    case "":
@@ -151,7 +160,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 			    break;
 			 
 			 
-			    default: console.log('handleUrl unknown:'+key +value); 
+			    default: //console.log('handleUrl unknown:'+key +value); 
 			  }	 		
 	 		
 	 	}
